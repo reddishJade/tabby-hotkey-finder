@@ -1,6 +1,6 @@
 {
   "name": "tabby-hotkey-finder",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Find hotkeys (including defaults) by key press or search.",
   "keywords": [
     "tabby-plugin",

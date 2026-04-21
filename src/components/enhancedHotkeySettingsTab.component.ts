@@ -25,8 +25,8 @@ import { Subscription } from 'rxjs'
                     </button>
                     <button
                         class="btn btn-outline-secondary"
-                        *ngIf="capturedKeystroke"
-                        (click)="clearCapturing()"
+                        *ngIf="capturedKeystroke || hotkeyFilter"
+                        (click)="clearAll()"
                     >
                         <i class="fas fa-times"></i>
                     </button>
@@ -72,15 +72,15 @@ import { Subscription } from 'rxjs'
             margin-left: 0.5rem;
         }
         .list-group-item {
-            background: transparent;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: transparent !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
         }
     `]
 })
 export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     hotkeyFilter = ''
     hotkeyDescriptions: HotkeyDescription[] = []
-    filteredHotkeys: (HotkeyDescription & { strokesArray: string[][], strokesStr: string })[] = []
+    filteredHotkeys: any[] = []
     isCapturing = false
     capturedKeystroke: string | null = null
     private keystrokeSubscription: Subscription | null = null
@@ -101,13 +101,27 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         this.stopCapturing()
     }
 
+    private getStrokesArray (id: string): string[][] {
+        // 1. Get custom hotkeys from config
+        let custom: any = this.config.store.hotkeys
+        for (const token of id.split(/\./g)) {
+            custom = custom?.[token]
+        }
+        
+        // 2. Get default hotkeys from descriptions
+        const desc = this.hotkeyDescriptions.find(x => x.id === id)
+        const defaults = desc?.default || []
+
+        // Combine them (custom overrides default in Tabby, but here we show all possible bindings)
+        const combined = (custom || defaults) as (string | string[])[]
+        return combined.map(x => typeof x === 'string' ? [x] : x)
+    }
+
     updateFilters () {
         const filterLower = this.hotkeyFilter.toLowerCase().trim()
         
         let results = this.hotkeyDescriptions.map(h => {
-            // Use hotkeys service to get the actual effective hotkeys (including defaults)
-            const strokes = (this.hotkeys as any).getHotkeys(h.id) || []
-            const strokesArray: string[][] = strokes.map(x => Array.isArray(x) ? x : [x])
+            const strokesArray = this.getStrokesArray(h.id)
             return {
                 ...h,
                 strokesArray,
@@ -140,7 +154,6 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         }
 
         this.filteredHotkeys = results
-        console.log('[Hotkey Finder] Filtered results:', results.length)
     }
 
     startCapturing () {
@@ -165,8 +178,9 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         }
     }
 
-    clearCapturing () {
+    clearAll () {
         this.capturedKeystroke = null
+        this.hotkeyFilter = ''
         this.updateFilters()
     }
 }

@@ -116,19 +116,24 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     }
 
     updateFilters () {
-        let results = this.hotkeyDescriptions.map(h => ({
-            ...h,
-            strokesStr: this.getStrokesArray(h.id).map(s => s.join(' ')).join(', '),
-        }))
+        const filterLower = this.hotkeyFilter.toLowerCase()
+        let results = this.hotkeyDescriptions.map(h => {
+            const strokesArray = this.getStrokesArray(h.id)
+            return {
+                ...h,
+                strokesArray,
+                strokesStr: strokesArray.map(s => s.join(' ')).join(', '),
+            }
+        })
 
         if (this.capturedKeystroke) {
             results = results.filter(h => {
-                const strokes = this.getStrokesArray(h.id)
-                return strokes.some(s => s.some(k => k.toLowerCase() === this.capturedKeystroke!.toLowerCase()))
+                return h.strokesArray.some(s => s.some(k => k.toLowerCase() === this.capturedKeystroke!.toLowerCase()))
             })
         }
 
         if (this.hotkeyFilter) {
+            // Standard fuzzy search on name and id
             const searcher = new FuzzySearch(results, ['name', 'id', 'strokesStr'], {
                 caseSensitive: false,
                 sort: true,

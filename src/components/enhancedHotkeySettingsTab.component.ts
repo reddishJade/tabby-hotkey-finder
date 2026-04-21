@@ -2,9 +2,6 @@ import { Component, NgZone, OnDestroy } from '@angular/core'
 import { ConfigService, HotkeyDescription, HotkeysService, HostAppService } from 'tabby-core'
 import { Subscription } from 'rxjs'
 
-// Using require for fuzzy-search to avoid type definition issues during transpile
-const FuzzySearch = require('fuzzy-search')
-
 @Component({
     template: `
         <div class="enhanced-hotkeys-settings">
@@ -13,7 +10,7 @@ const FuzzySearch = require('fuzzy-search')
                 <input
                     type="text"
                     class="form-control"
-                    [placeholder]="'Search hotkeys' | translate"
+                    [placeholder]="'Search hotkeys (e.g. Ctrl, Alt, or name)' | translate"
                     [(ngModel)]="hotkeyFilter"
                     (ngModelChange)="updateFilters()"
                 >
@@ -116,7 +113,8 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     }
 
     updateFilters () {
-        const filterLower = this.hotkeyFilter.toLowerCase()
+        const filterLower = this.hotkeyFilter.toLowerCase().trim()
+        
         let results = this.hotkeyDescriptions.map(h => {
             const strokesArray = this.getStrokesArray(h.id)
             return {
@@ -127,18 +125,31 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         })
 
         if (this.capturedKeystroke) {
+            const captureLower = this.capturedKeystroke.toLowerCase()
             results = results.filter(h => {
-                return h.strokesArray.some(s => s.some(k => k.toLowerCase() === this.capturedKeystroke!.toLowerCase()))
+                return h.strokesArray.some(s => s.some(k => k.toLowerCase() === captureLower))
             })
         }
 
-        if (this.hotkeyFilter) {
-            // Standard fuzzy search on name and id
-            const searcher = new FuzzySearch(results, ['name', 'id', 'strokesStr'], {
-                caseSensitive: false,
-                sort: true,
+        if (filterLower) {
+            results = results.filter(h => {
+                // Search in name
+                if (h.name.toLowerCase().includes(filterLower)) return true
+                // Search in ID
+                if (h.id.toLowerCase().includes(filterLower)) return true
+                // Search in strokes
+                if (h.strokesStr.toLowerCase().includes(filterLower)) return true
+                return false
             })
-            results = searcher.search(this.hotkeyFilter)
+            
+            // Basic relevance sorting: items starting with the filter come first
+            results.sort((a, b) => {
+                const aName = a.name.toLowerCase()
+                const bName = b.name.toLowerCase()
+                if (aName.startsWith(filterLower) && !bName.startsWith(filterLower)) return -1
+                if (!aName.startsWith(filterLower) && bName.startsWith(filterLower)) return 1
+                return aName.localeCompare(bName)
+            })
         }
 
         this.filteredHotkeys = results

@@ -1,6 +1,6 @@
 {
   "name": "tabby-hotkey-finder",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Find hotkeys by key press or fuzzy search.",
   "keywords": [
     "tabby-plugin",
@@ -29,8 +29,6 @@
     "@types/webpack-env": "^1.16.0",
     "apply-loader": "2.0.0",
     "css-loader": "^6.7.3",
-    "fuzzy-search": "^3.2.1",
-    "@types/fuzzy-search": "^2.1.5",
     "rxjs": "^7.5.7",
     "sass": "^1.63.4",
     "sass-loader": "^13.2.0",

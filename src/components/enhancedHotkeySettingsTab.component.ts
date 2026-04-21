@@ -8,7 +8,7 @@ import { Subscription } from 'rxjs'
             <div class="d-flex align-items-center mb-4">
                 <h3 class="m-0">{{ "Hotkey Finder" | translate }}</h3>
                 <div class="ml-auto" *ngIf="conflictsCount > 0">
-                    <span class="badge badge-danger">
+                    <span class="badge badge-conflict-header">
                         <i class="fas fa-exclamation-triangle mr-1"></i>
                         {{ conflictsCount }} {{ "Conflicts Detected" | translate }}
                     </span>
@@ -51,7 +51,7 @@ import { Subscription } from 'rxjs'
                         <div class="mr-3">
                             <div class="d-flex align-items-center">
                                 <strong>{{ hotkey.name }}</strong>
-                                <span class="badge badge-danger ml-2" *ngIf="hotkey.hasConflict">
+                                <span class="badge-conflict-tag ml-2" *ngIf="hotkey.hasConflict">
                                     {{ "Conflict" | translate }}
                                 </span>
                             </div>
@@ -59,9 +59,8 @@ import { Subscription } from 'rxjs'
                         </div>
                         <div class="d-flex flex-wrap justify-content-end">
                             <div
-                                class="badge ml-1 p-1"
-                                [class.badge-info]="!hotkey.hasConflict"
-                                [class.badge-danger]="hotkey.hasConflict"
+                                class="hotkey-badge ml-1"
+                                [class.conflict]="hotkey.hasConflict"
                                 *ngFor="let strokes of hotkey.strokesArray"
                             >
                                 {{ strokes.join(" ") }}
@@ -83,9 +82,45 @@ import { Subscription } from 'rxjs'
     styles: [`
         .ml-2 { margin-left: 0.5rem; }
         .mr-1 { margin-right: 0.25rem; }
+        
         .list-group-item {
             background: transparent !important;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+            padding: 12px 0 !important;
+        }
+
+        .badge-conflict-header {
+            background-color: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            padding: 5px 10px;
+        }
+
+        .badge-conflict-tag {
+            background-color: #ff4444;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .hotkey-badge {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 2px 8px;
+            color: #aaa;
+            font-family: monospace;
+            white-space: nowrap;
+        }
+
+        .hotkey-badge.conflict {
+            background: rgba(255, 68, 68, 0.1);
+            border-color: #ff4444;
+            color: #ff4444;
+            box-shadow: 0 0 5px rgba(255, 68, 68, 0.3);
         }
     `]
 })
@@ -141,7 +176,6 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
 
     private calculateConflicts () {
         this.strokeToIdsMap.clear()
-        this.conflictsCount = 0
         const conflictIds = new Set<string>()
 
         for (const h of this.hotkeyDescriptions) {
@@ -155,7 +189,6 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
             }
         }
 
-        // Count unique hotkey IDs that are part of any conflict
         for (const [stroke, ids] of this.strokeToIdsMap.entries()) {
             if (ids.length > 1) {
                 ids.forEach(id => conflictIds.add(id))
@@ -205,7 +238,6 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
                 return aName.localeCompare(bName)
             })
         } else {
-            // Sort by conflict first if no filter
             results.sort((a, b) => (a.hasConflict === b.hasConflict) ? 0 : a.hasConflict ? -1 : 1)
         }
 

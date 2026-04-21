@@ -1,6 +1,6 @@
 {
   "name": "tabby-hotkey-finder",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Find hotkeys and detect conflicts by key press or search.",
   "keywords": [
     "tabby-plugin",

@@ -5,7 +5,16 @@ import { Subscription } from 'rxjs'
 @Component({
     template: `
         <div class="enhanced-hotkeys-settings">
-            <h3 class="mb-4">{{ "Hotkey Finder" | translate }}</h3>
+            <div class="d-flex align-items-center mb-4">
+                <h3 class="m-0">{{ "Hotkey Finder" | translate }}</h3>
+                <div class="ml-auto" *ngIf="conflictsCount > 0">
+                    <span class="badge badge-danger">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        {{ conflictsCount }} {{ "Conflicts Detected" | translate }}
+                    </span>
+                </div>
+            </div>
+
             <div class="input-group mb-3">
                 <input
                     type="text"
@@ -39,13 +48,20 @@ import { Subscription } from 'rxjs'
                     *ngFor="let hotkey of filteredHotkeys"
                 >
                     <div class="d-flex w-100 justify-content-between align-items-center">
-                        <div>
-                            <strong>{{ hotkey.name }}</strong>
+                        <div class="mr-3">
+                            <div class="d-flex align-items-center">
+                                <strong>{{ hotkey.name }}</strong>
+                                <span class="badge badge-danger ml-2" *ngIf="hotkey.hasConflict">
+                                    {{ "Conflict" | translate }}
+                                </span>
+                            </div>
                             <div class="text-muted small">{{ hotkey.id }}</div>
                         </div>
                         <div class="d-flex flex-wrap justify-content-end">
                             <div
-                                class="badge badge-info ml-1 p-1"
+                                class="badge ml-1 p-1"
+                                [class.badge-info]="!hotkey.hasConflict"
+                                [class.badge-danger]="hotkey.hasConflict"
                                 *ngFor="let strokes of hotkey.strokesArray"
                             >
                                 {{ strokes.join(" ") }}
@@ -65,9 +81,8 @@ import { Subscription } from 'rxjs'
         </div>
     `,
     styles: [`
-        .ml-2 {
-            margin-left: 0.5rem;
-        }
+        .ml-2 { margin-left: 0.5rem; }
+        .mr-1 { margin-right: 0.25rem; }
         .list-group-item {
             background: transparent !important;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
@@ -80,7 +95,9 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     filteredHotkeys: any[] = []
     isCapturing = false
     capturedKeystroke: string | null = null
+    conflictsCount = 0
     private keystrokeSubscription: Subscription | null = null
+    private strokeToIdsMap = new Map<string, string[]>()
 
     constructor (
         public config: ConfigService,
@@ -90,6 +107,7 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     ) {
         this.hotkeys.getHotkeyDescriptions().then(descriptions => {
             this.hotkeyDescriptions = descriptions
+            this.calculateConflicts()
             this.updateFilters()
         })
     }
@@ -103,7 +121,6 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         for (const token of id.split(/\./g)) {
             ptr = ptr?.[token]
         }
-        
         if (!ptr) {
             ptr = (this.config as any).defaults?.hotkeys
             if (ptr) {
@@ -112,19 +129,39 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
                 }
             }
         }
-
-        if (!ptr) {
-            return []
-        }
-
+        if (!ptr) return []
         let rawArray: any[] = []
         if (typeof ptr === 'string') {
             rawArray = [[ptr]]
         } else if (Array.isArray(ptr)) {
             rawArray = ptr.map(x => typeof x === 'string' ? [x] : x)
         }
-
         return rawArray
+    }
+
+    private calculateConflicts () {
+        this.strokeToIdsMap.clear()
+        this.conflictsCount = 0
+        const conflictIds = new Set<string>()
+
+        for (const h of this.hotkeyDescriptions) {
+            const strokes = this.getStrokesArray(h.id)
+            for (const s of strokes) {
+                const sStr = s.join(' ').toLowerCase()
+                if (!this.strokeToIdsMap.has(sStr)) {
+                    this.strokeToIdsMap.set(sStr, [])
+                }
+                this.strokeToIdsMap.get(sStr)!.push(h.id)
+            }
+        }
+
+        // Count unique hotkey IDs that are part of any conflict
+        for (const [stroke, ids] of this.strokeToIdsMap.entries()) {
+            if (ids.length > 1) {
+                ids.forEach(id => conflictIds.add(id))
+            }
+        }
+        this.conflictsCount = conflictIds.size
     }
 
     updateFilters () {
@@ -132,18 +169,22 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         
         let results = this.hotkeyDescriptions.map(h => {
             const strokesArray = this.getStrokesArray(h.id)
+            const hasConflict = strokesArray.some(s => {
+                const sStr = s.join(' ').toLowerCase()
+                return (this.strokeToIdsMap.get(sStr)?.length || 0) > 1
+            })
+
             return {
                 ...h,
                 strokesArray,
                 strokesStr: strokesArray.map(s => s.join(' ')).join(', '),
+                hasConflict
             }
         })
 
         if (this.capturedKeystroke) {
             const captureLower = this.capturedKeystroke.toLowerCase()
-            results = results.filter(h => {
-                return h.strokesStr.toLowerCase().includes(captureLower)
-            })
+            results = results.filter(h => h.strokesStr.toLowerCase().includes(captureLower))
         }
 
         if (filterLower) {
@@ -155,12 +196,17 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
             })
             
             results.sort((a, b) => {
+                if (a.hasConflict && !b.hasConflict) return -1
+                if (!a.hasConflict && b.hasConflict) return 1
                 const aName = a.name.toLowerCase()
                 const bName = b.name.toLowerCase()
                 if (aName.startsWith(filterLower) && !bName.startsWith(filterLower)) return -1
                 if (!aName.startsWith(filterLower) && bName.startsWith(filterLower)) return 1
                 return aName.localeCompare(bName)
             })
+        } else {
+            // Sort by conflict first if no filter
+            results.sort((a, b) => (a.hasConflict === b.hasConflict) ? 0 : a.hasConflict ? -1 : 1)
         }
 
         this.filteredHotkeys = results

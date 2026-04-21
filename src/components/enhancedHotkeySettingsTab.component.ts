@@ -7,9 +7,11 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 @Component({
     template: `
         <div class="content-box">
-            <div class="d-flex align-items-center mb-3">
-                <h3 class="m-0">{{ "Hotkey Finder" | translate }}</h3>
-                <div class="ms-auto" *ngIf="conflictsCount > 0">
+            <div class="row align-items-center mb-3">
+                <div class="col-8">
+                    <h3 class="m-0">{{ "Hotkey Finder" | translate }}</h3>
+                </div>
+                <div class="col-4 pe-5 text-start" *ngIf="conflictsCount > 0">
                     <span class="badge badge-conflict-header">
                         <i class="fas fa-exclamation-triangle me-1"></i>
                         {{ conflictsCount }} {{ "Conflicts" | translate }}
@@ -51,29 +53,29 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
                     *ngFor="let hotkey of filteredHotkeys"
                 >
                     <div class="col-8 py-2">
-                        <div class="d-flex align-items-center">
-                            <span>{{ hotkey.name | translate }}</span>
-                            <span class="badge-conflict-tag ms-2" *ngIf="hotkey.hasConflict">
-                                {{ "Conflict" | translate }}
-                            </span>
-                        </div>
-                        <div class="text-muted small">({{ hotkey.id }})</div>
+                        <span>{{ hotkey.name | translate }}</span>
+                        <span class="ms-2 text-muted">({{ hotkey.id }})</span>
+                        <span class="badge-conflict-tag ms-2" *ngIf="hotkey.hasConflict">
+                            {{ "Conflict" | translate }}
+                        </span>
                     </div>
-                    <div class="col-4 pe-5 multi-hotkey-input">
-                        <!-- Native-like hotkey list -->
-                        <div
-                            class="item"
-                            *ngFor="let strokes of hotkey.strokesArray; let i = index"
-                        >
-                            <div class="body" (click)="editHotkey(hotkey, i)">
-                                <div class="stroke">
-                                    <span [class.duplicate]="isStrokeConflicting(strokes)">{{ strokes.join(" ") }}</span>
+                    <div class="col-4 pe-5">
+                        <div class="multi-hotkey-input">
+                            <div
+                                class="item"
+                                [class.conflict-item]="isStrokeConflicting(strokes)"
+                                *ngFor="let strokes of hotkey.strokesArray; let i = index"
+                            >
+                                <div class="body" (click)="editHotkey(hotkey, i)">
+                                    <div class="stroke" *ngFor="let stroke of strokes">
+                                        <span [class.duplicate]="isStrokeConflicting(strokes)">{{ stroke }}</span>
+                                    </div>
                                 </div>
+                                <div class="remove" (click)="removeHotkey(hotkey, i)">&times;</div>
                             </div>
-                            <div class="remove" (click)="removeHotkey(hotkey, i)">&times;</div>
+
+                            <div class="add" (click)="addHotkey(hotkey)">{{ "Add..." | translate }}</div>
                         </div>
-                        
-                        <div class="add" (click)="addHotkey(hotkey)">{{ "Add..." | translate }}</div>
                     </div>
                 </div>
 
@@ -106,6 +108,7 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
             color: #ff4444;
             border: 1px solid rgba(255, 68, 68, 0.3);
             font-weight: normal;
+            vertical-align: middle;
         }
 
         .badge-conflict-tag {
@@ -118,77 +121,96 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
             border-radius: 3px;
         }
 
-        /* Essential Tabby Multi-Hotkey-Input Styles */
         .multi-hotkey-input {
             display: flex;
-            flex-wrap: wrap;
-            justify-content: flex-end;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            white-space: nowrap;
         }
 
         .multi-hotkey-input:hover .add {
-            display: block;
+            display: initial;
         }
 
         .item {
             display: flex;
-            align-items: stretch;
-            margin: 2px;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
+            flex: none;
+            background: var(--theme-bg-more);
+            border: 1px solid var(--bs-primary);
+            border-radius: 3px;
+            margin-right: 5px;
         }
 
         .item .body {
-            padding: 1px 8px;
-            cursor: pointer;
+            flex: none;
             display: flex;
-            align-items: center;
-        }
-
-        .item .body:hover {
-            background: rgba(255, 255, 255, 0.1);
+            padding: 3px 0 2px;
+            cursor: pointer;
         }
 
         .item .stroke {
+            flex: none;
+            padding: 0 6px;
+            border-right: 1px solid var(--bs-body-bg);
+        }
+
+        .item .stroke span {
             font-family: monospace;
             font-size: 0.85rem;
             color: #ccc;
         }
 
         .item .stroke .duplicate {
-            color: #ff4444 !important;
+            color: #fff;
             font-weight: bold;
         }
 
         .item .remove {
-            padding: 1px 6px;
+            flex: none;
+            padding: 3px 8px 2px;
             cursor: pointer;
-            border-left: 1px solid rgba(255, 255, 255, 0.1);
-            color: #666;
+            color: #aaa;
             line-height: 1;
-            display: flex;
-            align-items: center;
         }
 
-        .item .remove:hover {
-            background: rgba(255, 68, 68, 0.2);
-            color: #ff4444;
+        .item.conflict-item {
+            background-color: var(--bs-danger);
+            border-color: var(--bs-danger);
         }
 
         .add {
+            flex: auto;
             display: none;
-            color: #007bff; /* Standard Bootstrap / Tabby primary */
+            color: #777;
             cursor: pointer;
-            padding: 2px 8px;
+            padding: 4px 10px 0;
             font-size: 0.85rem;
         }
-        
+
         .add:first-child {
             display: block;
         }
 
-        .add:hover {
-            text-decoration: underline;
+        .add:hover,
+        .item .body:hover,
+        .item .remove:hover {
+            background: var(--theme-bg-more);
+        }
+
+        .add:active,
+        .item .body:active,
+        .item .remove:active {
+            background: var(--theme-bg-more-2);
+        }
+
+        .item.conflict-item .body:hover,
+        .item.conflict-item .remove:hover {
+            background: var(--theme-danger-less);
+        }
+
+        .item.conflict-item .body:active,
+        .item.conflict-item .remove:active {
+            background: var(--theme-danger-less-2);
         }
     `]
 })

@@ -6,7 +6,7 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
 @Component({
     template: `
-        <div class="content-box">
+        <div>
             <div class="row align-items-center mb-3">
                 <div class="col-8">
                     <h3 class="m-0">{{ "Hotkey Finder" | translate }}</h3>
@@ -102,10 +102,6 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
             display: block;
         }
 
-        .content-box {
-            max-width: 600px;
-        }
-
         .hotkey-row {
             margin: 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
@@ -145,10 +141,8 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
         }
 
         .capture-label {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
             white-space: nowrap;
+            font-size: 0.85rem;
         }
 
         .clear-btn {
@@ -343,9 +337,9 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
 
         if (filterLower) {
             results = results.filter(h => {
-                if (h.name.toLowerCase().includes(filterLower)) return true
-                if (h.id.toLowerCase().includes(filterLower)) return true
-                if (h.strokesStr.toLowerCase().includes(filterLower)) return true
+                if (this.matchFilter(h.name, filterLower)) return true
+                if (this.matchFilter(h.id, filterLower)) return true
+                if (this.matchFilter(h.strokesStr, filterLower)) return true
                 return false
             })
             
@@ -363,6 +357,21 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         }
 
         this.filteredHotkeys = results
+    }
+
+    private matchFilter (value: string, query: string): boolean {
+        const source = value.toLowerCase()
+        return source.includes(query) || this.fuzzyMatch(query, source)
+    }
+
+    private fuzzyMatch (query: string, source: string): boolean {
+        let queryIndex = 0
+        for (let i = 0; i < source.length && queryIndex < query.length; i++) {
+            if (source[i] === query[queryIndex]) {
+                queryIndex++
+            }
+        }
+        return queryIndex === query.length
     }
 
     isStrokeConflicting (strokes: string[]): boolean {

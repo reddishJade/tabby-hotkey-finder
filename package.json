@@ -1,6 +1,6 @@
 {
   "name": "tabby-hotkey-finder",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Native-look hotkey management and conflict detection.",
   "keywords": [
     "tabby-plugin",

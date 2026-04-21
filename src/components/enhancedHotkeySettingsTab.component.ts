@@ -46,7 +46,7 @@ import { Subscription } from 'rxjs'
                         <div class="d-flex flex-wrap justify-content-end">
                             <div
                                 class="badge badge-info ml-1 p-1"
-                                *ngFor="let strokes of getStrokesArray(hotkey.id)"
+                                *ngFor="let strokes of hotkey.strokesArray"
                             >
                                 {{ strokes.join(" ") }}
                             </div>
@@ -80,7 +80,7 @@ import { Subscription } from 'rxjs'
 export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     hotkeyFilter = ''
     hotkeyDescriptions: HotkeyDescription[] = []
-    filteredHotkeys: (HotkeyDescription & { strokesStr: string })[] = []
+    filteredHotkeys: (HotkeyDescription & { strokesArray: string[][], strokesStr: string })[] = []
     isCapturing = false
     capturedKeystroke: string | null = null
     private keystrokeSubscription: Subscription | null = null
@@ -101,22 +101,13 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         this.stopCapturing()
     }
 
-    getStrokesArray (id: string): string[][] {
-        let ptr = this.config.store.hotkeys
-        for (const token of id.split(/\./g)) {
-            ptr = ptr?.[token]
-        }
-        if (!ptr) {
-            return []
-        }
-        return (ptr as (string | string[])[]).map(x => typeof x === 'string' ? [x] : x)
-    }
-
     updateFilters () {
         const filterLower = this.hotkeyFilter.toLowerCase().trim()
         
         let results = this.hotkeyDescriptions.map(h => {
-            const strokesArray = this.getStrokesArray(h.id)
+            // Use hotkeys service to get the actual effective hotkeys (including defaults)
+            const strokes = (this.hotkeys as any).getHotkeys(h.id) || []
+            const strokesArray: string[][] = strokes.map(x => Array.isArray(x) ? x : [x])
             return {
                 ...h,
                 strokesArray,
@@ -133,16 +124,12 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
 
         if (filterLower) {
             results = results.filter(h => {
-                // Search in name
                 if (h.name.toLowerCase().includes(filterLower)) return true
-                // Search in ID
                 if (h.id.toLowerCase().includes(filterLower)) return true
-                // Search in strokes
                 if (h.strokesStr.toLowerCase().includes(filterLower)) return true
                 return false
             })
             
-            // Basic relevance sorting: items starting with the filter come first
             results.sort((a, b) => {
                 const aName = a.name.toLowerCase()
                 const bName = b.name.toLowerCase()
@@ -153,6 +140,7 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         }
 
         this.filteredHotkeys = results
+        console.log('[Hotkey Finder] Filtered results:', results.length)
     }
 
     startCapturing () {

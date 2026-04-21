@@ -6,6 +6,7 @@ import TabbyCoreModule from 'tabby-core'
 import { SettingsTabProvider } from 'tabby-settings'
 
 import { EnhancedHotkeySettingsTabComponent } from './components/enhancedHotkeySettingsTab.component'
+import { LocalHotkeyInputModalComponent } from './components/hotkeyInputModal.component'
 import { EnhancedHotkeySettingsTabProvider } from './settingsTabProvider'
 
 @NgModule({
@@ -20,9 +21,11 @@ import { EnhancedHotkeySettingsTabProvider } from './settingsTabProvider'
     ],
     entryComponents: [
         EnhancedHotkeySettingsTabComponent,
+        LocalHotkeyInputModalComponent,
     ],
     declarations: [
         EnhancedHotkeySettingsTabComponent,
+        LocalHotkeyInputModalComponent,
     ],
 })
 export default class EnhancedHotkeysModule { }

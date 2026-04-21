@@ -1,8 +1,8 @@
 import { Component, NgZone, OnDestroy } from '@angular/core'
 import { NgbModal } from '@ng-bootstrap/ng-bootstrap'
-import { ConfigService, HotkeyDescription, HotkeysService, HostAppService, Hotkey } from 'tabby-core'
-import { HotkeyInputModalComponent } from 'tabby-settings'
+import { ConfigService, HotkeyDescription, HotkeysService, HostAppService } from 'tabby-core'
 import { Subscription } from 'rxjs'
+import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
 @Component({
     template: `
@@ -17,11 +17,14 @@ import { Subscription } from 'rxjs'
                 </div>
             </div>
 
-            <div class="input-group mb-3">
+            <div class="input-group mb-4">
+                <div class="input-group-text">
+                    <i class="fas fa-fw fa-search"></i>
+                </div>
                 <input
                     type="text"
                     class="form-control"
-                    [placeholder]="'Search hotkeys (e.g. Ctrl, Alt, or name)' | translate"
+                    [placeholder]="'Search hotkeys' | translate"
                     [(ngModel)]="hotkeyFilter"
                     (ngModelChange)="updateFilters()"
                 >
@@ -30,6 +33,7 @@ import { Subscription } from 'rxjs'
                         class="btn btn-secondary"
                         (click)="isCapturing ? stopCapturing() : startCapturing()"
                         [class.active]="isCapturing"
+                        [ngbTooltip]="'Find hotkeys by pressing them' | translate"
                     >
                         <i class="fas fa-keyboard"></i>
                         <span class="ml-2">{{ (isCapturing ? "Capturing..." : capturedKeystroke || "Press key to find") | translate }}</span>
@@ -44,47 +48,40 @@ import { Subscription } from 'rxjs'
                 </div>
             </div>
 
-            <div class="list-group list-group-flush mt-4">
+            <div class="hotkeys-table mt-3">
                 <div
-                    class="list-group-item px-0"
+                    class="row align-items-center hotkey-row"
                     *ngFor="let hotkey of filteredHotkeys"
                 >
-                    <div class="row align-items-center">
-                        <div class="col-7">
-                            <div class="d-flex align-items-center">
-                                <strong>{{ hotkey.name | translate }}</strong>
-                                <span class="badge-conflict-tag ml-2" *ngIf="hotkey.hasConflict">
-                                    {{ "Conflict" | translate }}
-                                </span>
-                            </div>
-                            <div class="text-muted small">{{ hotkey.id }}</div>
+                    <div class="col-7 py-2">
+                        <div class="d-flex align-items-center">
+                            <span>{{ hotkey.name | translate }}</span>
+                            <span class="badge-conflict-tag ml-2" *ngIf="hotkey.hasConflict">
+                                {{ "Conflict" | translate }}
+                            </span>
                         </div>
-                        <div class="col-5 d-flex flex-wrap justify-content-end align-items-center hotkey-column">
-                            <!-- Existing Strokes -->
-                            <div
-                                class="hotkey-item mb-1 ml-1"
-                                *ngFor="let strokes of hotkey.strokesArray; let i = index"
-                            >
-                                <div class="hotkey-body" (click)="editHotkey(hotkey, i)">
-                                    <span 
-                                        class="hotkey-stroke" 
-                                        [class.conflict]="isStrokeConflicting(strokes)"
-                                    >{{ strokes.join(" ") }}</span>
+                        <div class="text-muted small">({{ hotkey.id }})</div>
+                    </div>
+                    <div class="col-5 pe-5 d-flex flex-wrap justify-content-end align-items-center multi-hotkey-input">
+                        <!-- Replicating multi-hotkey-input structure -->
+                        <div
+                            class="item"
+                            *ngFor="let strokes of hotkey.strokesArray; let i = index"
+                        >
+                            <div class="body" (click)="editHotkey(hotkey, i)">
+                                <div class="stroke">
+                                    <span [class.duplicate]="isStrokeConflicting(strokes)">{{ strokes.join(" ") }}</span>
                                 </div>
-                                <div class="hotkey-remove" (click)="removeHotkey(hotkey, i)">&times;</div>
                             </div>
-                            
-                            <!-- Add Button -->
-                            <button class="btn btn-link btn-sm add-hotkey-btn ml-1 mb-1" (click)="addHotkey(hotkey)">
-                                <i class="fas fa-plus mr-1"></i>
-                                {{ "Add..." | translate }}
-                            </button>
+                            <div class="remove" (click)="removeHotkey(hotkey, i)">&times;</div>
                         </div>
+                        
+                        <div class="add" (click)="addHotkey(hotkey)">{{ "Add..." | translate }}</div>
                     </div>
                 </div>
 
                 <div
-                    class="list-group-item text-center text-muted py-5"
+                    class="text-center text-muted py-5"
                     *ngIf="filteredHotkeys.length === 0"
                 >
                     <i class="fas fa-search fa-3x mb-3"></i>
@@ -98,10 +95,9 @@ import { Subscription } from 'rxjs'
         .ml-4 { margin-left: 1.5rem !important; }
         .mr-1 { margin-right: 0.25rem; }
         
-        .list-group-item {
-            background: transparent !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-            padding: 12px 0 !important;
+        .hotkey-row {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            margin: 0;
         }
 
         .badge-conflict-header {
@@ -121,39 +117,50 @@ import { Subscription } from 'rxjs'
             text-transform: uppercase;
         }
 
-        /* Replicating Tabby's native hotkey input styles */
-        .hotkey-item {
+        /* Native-like styles for hotkey list */
+        .multi-hotkey-input {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .multi-hotkey-input:hover .add {
+            display: block;
+        }
+
+        .item {
             display: flex;
             align-items: stretch;
+            margin: 2px;
             background: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 4px;
             overflow: hidden;
         }
 
-        .hotkey-body {
+        .item .body {
             padding: 2px 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
         }
 
-        .hotkey-body:hover {
+        .item .body:hover {
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .hotkey-stroke {
+        .item .stroke {
             font-family: monospace;
             font-size: 0.9rem;
             color: #ccc;
         }
 
-        .hotkey-stroke.conflict {
-            color: #ff4444;
+        /* Native duplicate class behavior */
+        .item .stroke .duplicate {
+            color: #ff4444 !important;
             font-weight: bold;
         }
 
-        .hotkey-remove {
+        .item .remove {
             padding: 2px 6px;
             cursor: pointer;
             border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -163,25 +170,25 @@ import { Subscription } from 'rxjs'
             line-height: 1;
         }
 
-        .hotkey-remove:hover {
+        .item .remove:hover {
             background: rgba(255, 68, 68, 0.2);
             color: #ff4444;
         }
 
-        .add-hotkey-btn {
-            color: #888;
-            text-decoration: none;
-            font-size: 0.8rem;
+        .add {
+            display: none;
+            color: var(--bs-primary);
+            cursor: pointer;
             padding: 2px 8px;
+            font-size: 0.9rem;
+        }
+        
+        .add:first-child {
+            display: block;
         }
 
-        .add-hotkey-btn:hover {
-            color: #ccc;
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .hotkey-column {
-            min-height: 40px;
+        .add:hover {
+            text-decoration: underline;
         }
     `]
 })
@@ -309,7 +316,7 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     }
 
     async addHotkey (hotkey: any) {
-        const result = await this.ngbModal.open(HotkeyInputModalComponent).result
+        const result = await this.ngbModal.open(LocalHotkeyInputModalComponent).result
         if (result) {
             const current = this.getStrokesArray(hotkey.id)
             current.push(result)
@@ -318,7 +325,7 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     }
 
     async editHotkey (hotkey: any, index: number) {
-        const result = await this.ngbModal.open(HotkeyInputModalComponent).result
+        const result = await this.ngbModal.open(LocalHotkeyInputModalComponent).result
         if (result) {
             const current = this.getStrokesArray(hotkey.id)
             current[index] = result
@@ -345,7 +352,6 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
             prop = token
         }
         
-        // Normalize back to Tabby's format (strings for single strokes)
         ptr[prop] = strokes.map(s => s.length === 1 ? s[0] : s)
         
         this.config.save()

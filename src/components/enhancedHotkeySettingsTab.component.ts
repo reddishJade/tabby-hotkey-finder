@@ -65,9 +65,6 @@ import { Subscription } from 'rxjs'
         </div>
     `,
     styles: [`
-        .enhanced-hotkeys-settings {
-            /* padding: 20px; */
-        }
         .ml-2 {
             margin-left: 0.5rem;
         }
@@ -93,6 +90,7 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     ) {
         this.hotkeys.getHotkeyDescriptions().then(descriptions => {
             this.hotkeyDescriptions = descriptions
+            console.log('[Hotkey Finder] Loaded descriptions:', this.hotkeyDescriptions.length)
             this.updateFilters()
         })
     }
@@ -102,19 +100,35 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
     }
 
     private getStrokesArray (id: string): string[][] {
-        // 1. Get custom hotkeys from config
-        let custom: any = this.config.store.hotkeys
+        // 1. Try to get custom hotkeys from config store (which should merge defaults)
+        let ptr = this.config.store.hotkeys
         for (const token of id.split(/\./g)) {
-            custom = custom?.[token]
+            ptr = ptr?.[token]
         }
         
-        // 2. Get default hotkeys from descriptions
-        const desc = this.hotkeyDescriptions.find(x => x.id === id)
-        const defaults = desc?.default || []
+        // 2. If config store didn't have it (unlikely if defaults are merged), 
+        // try accessing the internal defaults directly
+        if (!ptr) {
+            ptr = (this.config as any).defaults?.hotkeys
+            if (ptr) {
+                for (const token of id.split(/\./g)) {
+                    ptr = ptr?.[token]
+                }
+            }
+        }
 
-        // Combine them (custom overrides default in Tabby, but here we show all possible bindings)
-        const combined = (custom || defaults) as (string | string[])[]
-        return combined.map(x => typeof x === 'string' ? [x] : x)
+        if (!ptr) {
+            return []
+        }
+
+        let rawArray: any[] = []
+        if (typeof ptr === 'string') {
+            rawArray = [[ptr]]
+        } else if (Array.isArray(ptr)) {
+            rawArray = ptr.map(x => typeof x === 'string' ? [x] : x)
+        }
+
+        return rawArray
     }
 
     updateFilters () {
@@ -131,12 +145,15 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
 
         if (this.capturedKeystroke) {
             const captureLower = this.capturedKeystroke.toLowerCase()
+            console.log('[Hotkey Finder] Filtering by captured stroke:', captureLower)
             results = results.filter(h => {
-                return h.strokesArray.some(s => s.some(k => k.toLowerCase() === captureLower))
+                // If I press "Ctrl", I want to see anything that HAS "Ctrl" in it
+                return h.strokesStr.toLowerCase().includes(captureLower)
             })
         }
 
         if (filterLower) {
+            console.log('[Hotkey Finder] Filtering by text:', filterLower)
             results = results.filter(h => {
                 if (h.name.toLowerCase().includes(filterLower)) return true
                 if (h.id.toLowerCase().includes(filterLower)) return true
@@ -154,6 +171,11 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         }
 
         this.filteredHotkeys = results
+        console.log('[Hotkey Finder] Displaying', this.filteredHotkeys.length, 'results')
+        
+        if (this.filteredHotkeys.length === 0 && (filterLower || this.capturedKeystroke)) {
+            console.log('[Hotkey Finder] Sample data for debugging:', results.slice(0, 3))
+        }
     }
 
     startCapturing () {
@@ -162,6 +184,7 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
         this.hotkeys.disable()
         this.keystrokeSubscription = this.hotkeys.keystroke$.subscribe(keystroke => {
             this.zone.run(() => {
+                console.log('[Hotkey Finder] Captured keystroke:', keystroke)
                 this.capturedKeystroke = keystroke
                 this.updateFilters()
                 this.stopCapturing()

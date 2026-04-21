@@ -19,32 +19,40 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
                 </div>
             </div>
 
-            <div class="input-group mb-4">
-                <div class="input-group-text">
-                    <i class="fas fa-fw fa-search"></i>
+            <div class="row mb-4 align-items-center">
+                <div class="col-8">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <i class="fas fa-fw fa-search"></i>
+                        </div>
+                        <input
+                            type="search"
+                            class="form-control"
+                            [placeholder]="'Search hotkeys' | translate"
+                            [(ngModel)]="hotkeyFilter"
+                            (ngModelChange)="updateFilters()"
+                        >
+                    </div>
                 </div>
-                <input
-                    type="search"
-                    class="form-control"
-                    [placeholder]="'Search hotkeys' | translate"
-                    [(ngModel)]="hotkeyFilter"
-                    (ngModelChange)="updateFilters()"
-                >
-                <button
-                    class="btn btn-secondary"
-                    (click)="isCapturing ? stopCapturing() : startCapturing()"
-                    [class.active]="isCapturing"
-                >
-                    <i class="fas fa-keyboard"></i>
-                    <span class="ms-2">{{ (isCapturing ? "Capturing..." : capturedKeystroke || "Press key to find") | translate }}</span>
-                </button>
-                <button
-                    class="btn btn-outline-secondary"
-                    *ngIf="capturedKeystroke || hotkeyFilter"
-                    (click)="clearAll()"
-                >
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="col-4 pe-5">
+                    <div class="capture-controls">
+                        <button
+                            class="btn btn-secondary capture-btn"
+                            (click)="isCapturing ? stopCapturing() : startCapturing()"
+                            [class.active]="isCapturing"
+                        >
+                            <i class="fas fa-keyboard"></i>
+                            <span class="capture-label">{{ (isCapturing ? "Capturing..." : capturedKeystroke || "Press key to find") | translate }}</span>
+                        </button>
+                        <button
+                            class="btn btn-outline-secondary clear-btn"
+                            *ngIf="capturedKeystroke || hotkeyFilter"
+                            (click)="clearAll()"
+                        >
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div class="hotkeys-table mb-3">
@@ -121,6 +129,33 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
             border-radius: 3px;
         }
 
+        .capture-controls {
+            display: flex;
+            align-items: stretch;
+            width: 100%;
+        }
+
+        .capture-btn {
+            min-width: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.5rem;
+        }
+
+        .capture-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .clear-btn {
+            margin-left: 0.375rem;
+            flex: none;
+        }
+
         .multi-hotkey-input {
             display: flex;
             flex-wrap: nowrap;
@@ -152,12 +187,6 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
             flex: none;
             padding: 0 6px;
             border-right: 1px solid var(--bs-body-bg);
-        }
-
-        .item .stroke span {
-            font-family: monospace;
-            font-size: 0.85rem;
-            color: #ccc;
         }
 
         .item .stroke .duplicate {
@@ -302,6 +331,10 @@ export class EnhancedHotkeySettingsTabComponent implements OnDestroy {
                 hasConflict
             }
         })
+
+        if (!filterLower && !this.capturedKeystroke) {
+            results = results.filter(h => h.strokesArray.length > 0)
+        }
 
         if (this.capturedKeystroke) {
             const captureLower = this.capturedKeystroke.toLowerCase()

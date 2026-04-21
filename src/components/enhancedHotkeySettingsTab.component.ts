@@ -6,13 +6,13 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
 @Component({
     template: `
-        <div class="enhanced-hotkeys-settings">
-            <div class="d-flex align-items-center mb-4">
+        <div class="content-box">
+            <div class="d-flex align-items-center mb-3">
                 <h3 class="m-0">{{ "Hotkey Finder" | translate }}</h3>
-                <div class="ml-4" *ngIf="conflictsCount > 0">
+                <div class="ms-auto" *ngIf="conflictsCount > 0">
                     <span class="badge badge-conflict-header">
-                        <i class="fas fa-exclamation-triangle mr-1"></i>
-                        {{ conflictsCount }} {{ "Conflicts Detected" | translate }}
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        {{ conflictsCount }} {{ "Conflicts" | translate }}
                     </span>
                 </div>
             </div>
@@ -22,48 +22,45 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
                     <i class="fas fa-fw fa-search"></i>
                 </div>
                 <input
-                    type="text"
+                    type="search"
                     class="form-control"
                     [placeholder]="'Search hotkeys' | translate"
                     [(ngModel)]="hotkeyFilter"
                     (ngModelChange)="updateFilters()"
                 >
-                <div class="input-group-append">
-                    <button
-                        class="btn btn-secondary"
-                        (click)="isCapturing ? stopCapturing() : startCapturing()"
-                        [class.active]="isCapturing"
-                        [ngbTooltip]="'Find hotkeys by pressing them' | translate"
-                    >
-                        <i class="fas fa-keyboard"></i>
-                        <span class="ml-2">{{ (isCapturing ? "Capturing..." : capturedKeystroke || "Press key to find") | translate }}</span>
-                    </button>
-                    <button
-                        class="btn btn-outline-secondary"
-                        *ngIf="capturedKeystroke || hotkeyFilter"
-                        (click)="clearAll()"
-                    >
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
+                <button
+                    class="btn btn-secondary"
+                    (click)="isCapturing ? stopCapturing() : startCapturing()"
+                    [class.active]="isCapturing"
+                >
+                    <i class="fas fa-keyboard"></i>
+                    <span class="ms-2">{{ (isCapturing ? "Capturing..." : capturedKeystroke || "Press key to find") | translate }}</span>
+                </button>
+                <button
+                    class="btn btn-outline-secondary"
+                    *ngIf="capturedKeystroke || hotkeyFilter"
+                    (click)="clearAll()"
+                >
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
 
-            <div class="hotkeys-table mt-3">
+            <div class="hotkeys-table mb-3">
                 <div
                     class="row align-items-center hotkey-row"
                     *ngFor="let hotkey of filteredHotkeys"
                 >
-                    <div class="col-7 py-2">
+                    <div class="col-8 py-2">
                         <div class="d-flex align-items-center">
                             <span>{{ hotkey.name | translate }}</span>
-                            <span class="badge-conflict-tag ml-2" *ngIf="hotkey.hasConflict">
+                            <span class="badge-conflict-tag ms-2" *ngIf="hotkey.hasConflict">
                                 {{ "Conflict" | translate }}
                             </span>
                         </div>
                         <div class="text-muted small">({{ hotkey.id }})</div>
                     </div>
-                    <div class="col-5 pe-5 d-flex flex-wrap justify-content-end align-items-center multi-hotkey-input">
-                        <!-- Replicating multi-hotkey-input structure -->
+                    <div class="col-4 pe-5 multi-hotkey-input">
+                        <!-- Native-like hotkey list -->
                         <div
                             class="item"
                             *ngFor="let strokes of hotkey.strokesArray; let i = index"
@@ -91,36 +88,41 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
         </div>
     `,
     styles: [`
-        .ml-2 { margin-left: 0.5rem; }
-        .ml-4 { margin-left: 1.5rem !important; }
-        .mr-1 { margin-right: 0.25rem; }
-        
+        :host {
+            display: block;
+        }
+
+        .content-box {
+            max-width: 600px;
+        }
+
         .hotkey-row {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             margin: 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .badge-conflict-header {
-            background-color: rgba(255, 68, 68, 0.2);
+            background-color: rgba(255, 68, 68, 0.1);
             color: #ff4444;
-            border: 1px solid #ff4444;
-            padding: 5px 10px;
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            font-weight: normal;
         }
 
         .badge-conflict-tag {
-            background-color: #ff4444;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
+            color: #ff4444;
             font-size: 0.7rem;
             font-weight: bold;
             text-transform: uppercase;
+            border: 1px solid #ff4444;
+            padding: 1px 4px;
+            border-radius: 3px;
         }
 
-        /* Native-like styles for hotkey list */
+        /* Essential Tabby Multi-Hotkey-Input Styles */
         .multi-hotkey-input {
             display: flex;
             flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .multi-hotkey-input:hover .add {
@@ -132,13 +134,12 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
             align-items: stretch;
             margin: 2px;
             background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 4px;
-            overflow: hidden;
         }
 
         .item .body {
-            padding: 2px 8px;
+            padding: 1px 8px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -150,24 +151,23 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
         .item .stroke {
             font-family: monospace;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #ccc;
         }
 
-        /* Native duplicate class behavior */
         .item .stroke .duplicate {
             color: #ff4444 !important;
             font-weight: bold;
         }
 
         .item .remove {
-            padding: 2px 6px;
+            padding: 1px 6px;
             cursor: pointer;
             border-left: 1px solid rgba(255, 255, 255, 0.1);
-            color: #888;
+            color: #666;
+            line-height: 1;
             display: flex;
             align-items: center;
-            line-height: 1;
         }
 
         .item .remove:hover {
@@ -177,10 +177,10 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
         .add {
             display: none;
-            color: var(--bs-primary);
+            color: #007bff; /* Standard Bootstrap / Tabby primary */
             cursor: pointer;
             padding: 2px 8px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
         
         .add:first-child {

@@ -104,7 +104,6 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
         .hotkey-row {
             margin: 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .badge-conflict-header {
@@ -190,10 +189,12 @@ import { LocalHotkeyInputModalComponent } from './hotkeyInputModal.component'
 
         .item .remove {
             flex: none;
-            padding: 3px 8px 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 8px;
             cursor: pointer;
             color: #aaa;
-            line-height: 1;
         }
 
         .item.conflict-item {
